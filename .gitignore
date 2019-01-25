@@ -1,0 +1,7 @@
+.idea
+.env
+tests
+docker/data
+docker/logs
+www/bitrix
+www/upload

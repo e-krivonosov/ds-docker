@@ -1,0 +1,148 @@
+version: '3'
+
+services:
+    nginx:
+        build: ./containers/nginx
+        container_name: ${PROJECT_PREFIX}_webserver
+        depends_on:
+            - mysql
+        volumes:
+            - ../www:/var/www/html
+            - ./logs/nginx:/var/log/nginx
+            - /etc/localtime:/etc/localtime/:ro
+        links:
+            - php
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.2
+        restart: unless-stopped
+    php:
+        build: ./containers/php
+        container_name: ${PROJECT_PREFIX}_php
+        volumes:
+            - ../www:/var/www/html
+            - /etc/localtime:/etc/localtime/:ro
+            - ./logs/php:/var/log/php
+        links:
+            - mysql
+            - memcached
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.3
+        restart: unless-stopped
+    mysql:
+        build: ./containers/mysql
+        container_name: ${PROJECT_PREFIX}_mysql
+        user: 1000:1000
+        environment:
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_ALLOW_EMPTY_PASSWORD: ${MYSQL_ALLOW_EMPTY_PASSWORD}
+        volumes:
+            - ./logs/mysql:/var/log/mysql
+            - ./data/mysql:/var/lib/mysql
+            - /etc/localtime:/etc/localtime/:ro
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.4
+        restart: unless-stopped
+    memcached:
+        image: memcached:1.5-alpine
+        container_name: ${PROJECT_PREFIX}_memcached
+        volumes:
+            - /etc/localtime:/etc/localtime/:ro
+            - ./logs/memcached:/var/log/memcached
+            - ./data/memcached:/var/lib/memcached
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.5
+        restart: unless-stopped
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:6.5.1
+        container_name: ${PROJECT_PREFIX}_elasticsearch
+        user: 1000:1000
+        environment:
+            - cluster.name=docker-cluster
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - /etc/localtime:/etc/localtime/:ro
+            - ./data/elasticsearch:/usr/share/elasticsearch/data
+        depends_on:
+            - mysql
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.6
+        restart: unless-stopped
+    jenkins:
+        build: ./containers/jenkins
+        container_name: ${PROJECT_PREFIX}_jenkins
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.7
+        volumes:
+            - /etc/localtime:/etc/localtime/:ro
+            - ./data/jenkins_home:/var/jenkins_home
+        restart: unless-stopped
+    redis:
+        image: redis:latest
+        container_name: ${PROJECT_PREFIX}_redis
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.9
+        volumes:
+            - /etc/localtime:/etc/localtime/:ro
+            - ./data/redis:/data
+        expose:
+            - 6379
+        restart: unless-stopped
+    codecept:
+        image: codeception/codeception
+        container_name: ${PROJECT_PREFIX}_codecept
+        user: 1000:1000
+        volumes:
+            - /etc/localtime:/etc/localtime/:ro
+            - ../:/project
+        depends_on:
+            - nginx
+            - chrome
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.10
+        extra_hosts:
+            - evk.local:${IP_PREFIX}.2
+    selenium-hub:
+        image: selenium/hub:3.12.0-cobalt
+        container_name: ${PROJECT_PREFIX}_selenium-hub
+        expose:
+            - 4444
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.11
+        extra_hosts:
+            - evk.local:${IP_PREFIX}.2
+        restart: unless-stopped
+    chrome:
+        image: selenium/node-chrome:3.12.0-cobalt
+        container_name: ${PROJECT_PREFIX}_selenium-chrome
+        depends_on:
+            - selenium-hub
+        environment:
+            - HUB_HOST=selenium-hub
+            - HUB_PORT=4444
+        networks:
+            bitrix:
+                ipv4_address: ${IP_PREFIX}.12
+        extra_hosts:
+            - evk.local:${IP_PREFIX}.2
+        restart: unless-stopped
+networks:
+    bitrix:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: ${IP_PREFIX}.0/25
