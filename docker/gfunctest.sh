@@ -1,0 +1,1 @@
+./codecept.sh generate:cept functional $1

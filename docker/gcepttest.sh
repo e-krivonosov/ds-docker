@@ -1,0 +1,1 @@
+./codecept.sh generate:cest acceptance $1

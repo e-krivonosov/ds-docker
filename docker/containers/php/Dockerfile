@@ -1,9 +1,3 @@
-#
-# NOTE: THIS DOCKERFILE IS GENERATED VIA "update.sh"
-#
-# PLEASE DO NOT EDIT IT DIRECTLY.
-#
-
 FROM alpine:3.8
 
 # dependencies required for running "phpize"
@@ -166,11 +160,16 @@ RUN set -xe \
 # https://github.com/docker-library/php/issues/443
 	&& pecl update-channels \
 	&& rm -rf /tmp/pear ~/.pearrc
-RUN apk add libpng-dev
-
+RUN apk add libpng-dev libjpeg-turbo-dev freetype freetype-dev libpng libjpeg-turbo
 COPY docker-php-ext-install /usr/local/bin/
 COPY docker-php-ext-enable /usr/local/bin/
 COPY docker-php-ext-configure /usr/local/bin/
+RUN docker-php-ext-configure gd \
+    --with-gd \
+    --with-freetype-dir=/usr/include/ \
+    --with-png-dir=/usr/include/ \
+    --with-jpeg-dir=/usr/include/
+
 RUN docker-php-ext-install gd mbstring mysqli
 
 COPY docker-php-ext-* docker-php-entrypoint /usr/local/bin/
@@ -182,8 +181,6 @@ ENTRYPOINT ["docker-php-entrypoint"]
 WORKDIR /var/www/html
 
 RUN mkdir /var/www/sessions && chown www-data:www-data /var/www/sessions
-RUN mkdir /var/www/sessions/cookies && chown www-data:www-data /var/www/sessions/cookies
-RUN mkdir /var/www/sessions/data && chown www-data:www-data /var/www/sessions/data
 
 RUN set -ex \
 	&& cd /usr/local/etc \

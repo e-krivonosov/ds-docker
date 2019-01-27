@@ -23,6 +23,7 @@ services:
             - ../www:/var/www/html
             - /etc/localtime:/etc/localtime/:ro
             - ./logs/php:/var/log/php
+            - ./data/sessions:/var/www/sessions
         links:
             - mysql
             - memcached
@@ -114,9 +115,9 @@ services:
                 ipv4_address: ${IP_PREFIX}.10
         extra_hosts:
             - evk.local:${IP_PREFIX}.2
-    selenium-hub:
+    selenium:
         image: selenium/hub:3.12.0-cobalt
-        container_name: ${PROJECT_PREFIX}_selenium-hub
+        container_name: ${PROJECT_PREFIX}_selenium
         expose:
             - 4444
         networks:
@@ -124,12 +125,11 @@ services:
                 ipv4_address: ${IP_PREFIX}.11
         extra_hosts:
             - evk.local:${IP_PREFIX}.2
-        restart: unless-stopped
     chrome:
         image: selenium/node-chrome:3.12.0-cobalt
-        container_name: ${PROJECT_PREFIX}_selenium-chrome
+        container_name: ${PROJECT_PREFIX}_chrome
         depends_on:
-            - selenium-hub
+            - selenium
         environment:
             - HUB_HOST=selenium-hub
             - HUB_PORT=4444
@@ -138,7 +138,6 @@ services:
                 ipv4_address: ${IP_PREFIX}.12
         extra_hosts:
             - evk.local:${IP_PREFIX}.2
-        restart: unless-stopped
 networks:
     bitrix:
         driver: bridge

@@ -1,0 +1,1 @@
+./codecept.sh generate:test unit $1
