@@ -1,4 +1,4 @@
-./install.sh
+./init.sh
 ./stop.sh
 docker-compose down
 docker-compose build
